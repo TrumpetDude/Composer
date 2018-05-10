@@ -328,7 +328,7 @@ def playChord(chord, length):#pass the set of notes and duration of chord (curre
     thread.start_new_thread(chordMiddle, (chord, length))#play  middle note
     thread.start_new_thread(chordTop, (chord, length))   #play  top note
 
-def playMelody(beat, previousInterval, chordIndicator):#pass the current chord and current beat
+def playMelody(beat, previousInterval, chordIndicator, length):#pass the current chord and current beat
     inRange = False
     tryAgain = False
     while not(inRange):#repeats until the note picked is within the range of notes available
@@ -397,12 +397,11 @@ def playMelody(beat, previousInterval, chordIndicator):#pass the current chord a
             inRange = True
                                    
     pitch = melodyNotes[interval]#set the pitch to the hertz value that corresponds to the interval chosen
-    thread.start_new_thread(melodyNote, (pitch, beatLength))#play the melody pitch
+    thread.start_new_thread(melodyNote, (pitch, length))#play the melody pitch
     return interval#return the interval chosen   
 
-interval = 8
-
 def musicThread():
+    interval = 8
     #let the chord selection metod know that this is the first chord of the song
     chord = [1,1,1]
     chordIndicator = 5#V always leads to I, so song will start on I chord
@@ -413,10 +412,25 @@ def musicThread():
             #print("Chord: "+str(chordIndicator))
             playChord(chord,timeSignature*beatLength)#play the chord
             
-            for beat in range(timeSignature):#go through each beat of the measure
-                playMelody(beat+1,interval, chordIndicator)#play a melody note for that beat
-                sleep(beatLength)#wait for one beat
-                #melody note can change after one beat of waiting, chord changes after all beats in a measure of waiting
+            if rhythmOn:
+                beat = 1
+                while beat<=timeSignature+0.5:
+                    eighths = (timeSignature+1)*2
+                    while beat+eighths/2 > timeSignature+1:
+                        eighths = randint(1,4)#between 1 and 4 8th notes long
+                    length = 0
+                    for n in range(eighths):#this sets the total actual length of the note.
+                        length+=beatLength/2
+                        beat+=0.5
+                    noteType = [0,1,1,1,1,1,1,1][randint(0,7)]#0=rest, 1=change note
+                    if noteType == 1:
+                        interval = playMelody(beat+1, interval, chordIndicator, length)
+                    sleep(length)
+            else:
+                for beat in range(timeSignature):#go through each beat of the measure
+                    playMelody(beat+1,interval, chordIndicator, beatLength)#play a melody note for that beat
+                    sleep(beatLength)#wait for one beat
+                    #melody note can change after one beat of waiting, chord changes after all beats in a measure of waiting                   
 
 def button(name, color, rect, mousePos):
     pygame.draw.rect(window, color, rect, 5)
@@ -429,6 +443,7 @@ def button(name, color, rect, mousePos):
 
 programQuit = False
 musicPlaying = False
+rhythmOn = False
 
 thread.start_new_thread(musicThread, ())
 
@@ -446,6 +461,11 @@ while True:
 
     mousePos=pygame.mouse.get_pos()
     mousePressed=pygame.mouse.get_pressed()
+
+    ########################################################
+    drawText(window, "Real-Time Music Composer\t\tBy Johnny Dollard", (255,255,255), 650,50)
+    ########################################################
+    drawText(window, "Music", (255,255,255), 400,250)
     ########################################################
     top = 0
     left = 0
@@ -455,17 +475,31 @@ while True:
         pygame.quit()
         sys.exit(0)
     ########################################################
-    top = 350
-    left = 700
+    top = 300
+    left = 435
     width = 100
     if button("Stop", (255,255,255), (left,top,width,50), mousePos):
         musicPlaying = False
     ########################################################
-    top = 350
-    left = 500
+    top = 300
+    left = 250
     width = 120
     if button("Start", (255,255,255), (left,top,width,50), mousePos):
         musicPlaying = True
+    ########################################################
+    drawText(window, "Rhythm", (255,255,255), 900,250)
+    ########################################################
+    top = 300
+    left = 770
+    width = 100
+    if button("On", (255,255,255), (left,top,width,50), mousePos):
+        rhythmOn = True
+    ########################################################
+    top = 300
+    left = 950
+    width = 100
+    if button("Off", (255,255,255), (left,top,width,50), mousePos):
+        rhythmOn = False
     ########################################################
     top = 540
     left = 90

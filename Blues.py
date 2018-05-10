@@ -108,31 +108,6 @@ def setPitchCenter(baseNote):
     B6  = C6*15/8
     C7  = C6*2/1#
 
-    '''#Dictionary of possible notes in the melody
-    melodyNotes = {
-        1:C5,
-        2:D5,
-        3:Eb5,
-        4:E5,
-        5:F5,
-        6:Gb5,
-        7:G5,
-        8:A5,
-        9:Bb5,
-        10:B5,
-        11:C6,
-        12:D6,
-        13:Eb6,
-        14:E6,
-        15:F6,
-        16:Gb6,
-        17:G6,
-        18:A6,
-        19:Bb6,
-        20:B6,
-        21:C7
-        }'''
-
     global BluesNotes
 
     BluesNotes   = {1:C5,
@@ -151,17 +126,11 @@ def setPitchCenter(baseNote):
                     14:B6,
                     15:C7}
 
-    '''
-    Chord = [
-        [inverson a]
-        [inversion b]
-        ]
-    '''
     I   = [C3, E3, G3, Bb3]
     IV  = [F3, A3, C4, Eb4]
     V   = [G3, B3, D4, F4]
 
-setPitchCenter(220)
+setPitchCenter(180)
 
 def drawText(window, text, color, centerX, centerY):
     font=pygame.font.Font("Apple Chancery.ttf", 36)
@@ -247,7 +216,7 @@ def playChord(chord, length):#pass the set of notes and duration of chord (curre
     thread.start_new_thread(chordFifth, (chord, length))
     thread.start_new_thread(chordFlatSeventh, (chord, length))
 
-def improvise(beat, previousInterval, chordIndicator):#pass the current chord andlast note
+def improvise(previousInterval, chordIndicator, length):#pass the current chord and last note
     inRange = False
     tryAgain = False
     while not(inRange):#repeats until the note picked is within the range of notes available
@@ -257,14 +226,14 @@ def improvise(beat, previousInterval, chordIndicator):#pass the current chord an
             inRange = True
                                    
     pitch = BluesNotes[interval]#set the pitch to the hertz value that corresponds to the interval chosen
-    thread.start_new_thread(melodyNote, (pitch, beatLength))#play the melody pitch
+    thread.start_new_thread(melodyNote, (pitch, length))#play the melody pitch
     return interval#return the interval chosen   
 
-def musicThread():
-    interval = 8
+def backgroundThread():
     measure = 1
     while not(programQuit):
         if musicPlaying:
+                
             if (measure >= 1 and measure <= 4) or (measure >= 7 and measure <= 8) or (measure >= 11 and measure <= 12):
                 playChord(I,4*beatLength)
                 chordIndicator = 1
@@ -275,13 +244,44 @@ def musicThread():
                 playChord(V,4*beatLength)
                 chordIndicator = 5
 
-            for beat in range(1,5):
-                improvise(beat, interval, chordIndicator)
-                sleep(beatLength)
-            
             measure+=1
             if measure == 13:
                 measure = 1
+
+            sleep(beatLength*4)
+
+def melodyThread():
+    interval = 8
+    measure = 1
+    while not(programQuit):
+        if musicPlaying:
+            if (measure >= 1 and measure <= 4) or (measure >= 7 and measure <= 8) or (measure >= 11 and measure <= 12):
+                chordIndicator = 1
+            if (measure >=5 and measure <= 6) or measure == 10:
+                chordIndicator = 4
+            if measure == 9:
+                chordIndicator = 5
+            beat = 1
+            while beat<=4.5:
+                eighths = 10
+                while beat+eighths/2 > 5:
+                    eighths = randint(1,4)#between 1 and 4 8th notes long
+                length = 0
+                for n in range(eighths):#this sets the total actual length of the note. Only needed because of swung rhythms
+                    if beat%1 == 0:
+                        length+=beatLength*3/8
+                    else:
+                        length+=beatLength*5/8
+                    beat+=0.5
+                noteType = [0,1,1,1,1,1,1,1][randint(0,7)]#0=rest, 1=change note
+                if noteType == 1:
+                    interval = improvise(interval, chordIndicator, length)
+                sleep(length)
+
+                measure+=1
+                if measure == 13:
+                    measure = 1
+
 
 def button(name, color, rect, mousePos):
     pygame.draw.rect(window, color, rect, 5)
@@ -295,7 +295,8 @@ def button(name, color, rect, mousePos):
 programQuit = False
 musicPlaying = False
 
-thread.start_new_thread(musicThread, ())
+thread.start_new_thread(backgroundThread, ())
+thread.start_new_thread(melodyThread, ())
 
 tempoRect = (tempo*2.5, 625, 100, 50)
 
@@ -310,6 +311,9 @@ while True:
 
     mousePos=pygame.mouse.get_pos()
     mousePressed=pygame.mouse.get_pressed()
+
+    ########################################################
+    drawText(window, "Automatic Blues Solo\t\tBy Johnny Dollard", (255,255,255), 650,50)
     ########################################################
     top = 0
     left = 0
